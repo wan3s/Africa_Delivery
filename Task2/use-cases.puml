@@ -1,0 +1,79 @@
+@startuml use-cases
+title Use Case — ключевые сценарии MVP Africa Delivery (15.10.2026)
+
+skinparam defaultFontName "Helvetica"
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #F5F5F5
+  BorderColor #555555
+}
+left to right direction
+
+actor "Покупатель\n(смартфон)" as Buyer
+actor "Покупатель\n(без интернета)" as Rural
+actor "Продавец" as Seller
+actor "Сотрудник ПВЗ" as Pickup
+actor "Оператор\nподдержки" as Support
+actor "CEO / инвестор" as Exec
+
+rectangle "Africa Delivery (MVP)" {
+  usecase "Найти товар\nв каталоге" as UC1
+  usecase "Оформить заказ" as UC2
+  usecase "Оплатить заказ" as UC3
+  usecase "Подтвердить оплату\nпо колбэку провайдера" as UC4
+  usecase "Передать заказ\nв доставку" as UC5
+  usecase "Отследить\nстатус заказа" as UC6
+  usecase "Уведомить\n(SMS / WhatsApp)" as UC7
+  usecase "Оформить заказ\nчерез USSD / SMS" as UC8
+  usecase "Завести\nкарточку товара" as UC9
+  usecase "Завести товар\nчерез WhatsApp" as UC10
+  usecase "Посмотреть заказы\nи выплаты" as UC11
+  usecase "Выплатить средства\nпродавцу" as UC12
+  usecase "Подтвердить выдачу\nв ПВЗ" as UC13
+  usecase "Оформить возврат" as UC14
+  usecase "Проверить\nпродавца (KYC)" as UC15
+  usecase "Посмотреть\nдашборд запуска" as UC16
+}
+
+actor "Платёжный\nпровайдер" as Pay
+actor "Логистический\nпартнёр" as Logi
+
+Buyer --> UC1
+Buyer --> UC2
+Buyer --> UC6
+Buyer --> UC14
+Rural --> UC8
+Rural --> UC6
+Seller --> UC9
+Seller --> UC10
+Seller --> UC11
+Pickup --> UC13
+Support --> UC15
+Support --> UC14
+Exec --> UC16
+
+UC2 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC4 ..> UC5 : <<include>>
+UC2 ..> UC7 : <<include>>
+UC5 ..> UC7 : <<include>>
+UC13 ..> UC12 : <<include>>
+UC8 ..> UC2 : <<extend>>
+UC10 ..> UC9 : <<extend>>
+UC14 ..> UC12 : <<extend>>
+
+UC3 --> Pay
+UC4 --> Pay
+UC12 --> Pay
+UC5 --> Logi
+UC6 --> Logi
+
+note right of UC12
+  Выплата — после подтверждённой выдачи (T+1),
+  а не в день заказа (C-08, R6)
+end note
+note right of UC8
+  Требование маркетингового брифа (арт. 2):
+  30–40% рынка без мобильного интернета
+end note
+@enduml
