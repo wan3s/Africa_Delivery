@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | [Task1](Task1/) | Стейкхолдеры, противоречия, Architecture Canvas, вопросы | Решает инвестор; деньги — CFO; внешнее вето — регуляторы |
 | [Task2](Task2/) | Сравнение вариантов, TCO, ADR-001, C4 Context, Use Case, Vision, слайд и транскрипт | Модульный монолит; вариант CTO дороже вдвое и срывает дату |
-| Task3 | НФТ, SLO, Quality Attribute Scenarios, FMEA, ADR-002, наблюдаемость | — |
+| [Task3](Task3/) | НФТ, SLO-контракты, QAS, FMEA, ADR-002, наблюдаемость | 99,9% вместо 99,99%: четвёртая девятка окупается только при GMV \$200 млн/год |
 | Task4 | Data Residency, сравнение регионов, ADR-003, C4 Container и Deployment | — |
 | Task5 | Карта возможностей, Value Stream, Roadmap, ADR-004, Transition Architecture | — |
 | [templates](templates/) | Шаблон ADR, шаблон модели TCO | — |
