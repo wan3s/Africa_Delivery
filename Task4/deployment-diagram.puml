@@ -1,0 +1,87 @@
+@startuml deployment-diagram
+title Deployment — Africa Delivery, MVP (15.10.2026)
+
+skinparam defaultFontName "Helvetica"
+skinparam node {
+  BorderColor #555555
+}
+skinparam database {
+  BorderColor #555555
+}
+skinparam rectangle {
+  BorderColor #999999
+}
+
+cloud "Точки присутствия CDN\nЛагос · Найроби · Йоханнесбург" as CDN #E3F2FD
+
+node "AWS af-south-1 (Кейптаун, ЮАР)" as CPT #F1F8E9 {
+  node "Зона доступности A" as AZA {
+    rectangle "Kubernetes: группа узлов\n— приложение (2+ реплики)\n— воркер (1+ реплика)\n— коллектор телеметрии" as PODS_A
+    database "PostgreSQL\nосновной экземпляр" as PG_A
+    database "Redis\nкеш" as REDIS
+  }
+  node "Зона доступности B" as AZB {
+    rectangle "Kubernetes: группа узлов\nрезервная мощность" as PODS_B
+    database "PostgreSQL\nрезервный экземпляр\n(синхронная репликация)" as PG_B
+  }
+  node "Зона доступности C" as AZC {
+    rectangle "Резерв мощности\nдля автоскейла" as PODS_C
+  }
+  database "Объектное хранилище\nфото товаров, резервные копии\n(реплицируется между зонами)" as S3
+}
+
+node "Локальный провайдер, Лагос (Нигерия)" as NG #FFF3E0 {
+  node "Площадка NG-1" as NG1 {
+    rectangle "Сервис идентификаторов NG" as PII_NG
+    database "PostgreSQL\nидентификаторы нигерийцев\nключ шифрования в стране" as DB_NG
+  }
+  node "Площадка NG-2 (в стране)" as NG2 {
+    database "Резервные копии\nи холодная реплика" as BK_NG
+  }
+}
+
+node "Локальный провайдер, Найроби (Кения)" as KE #FFF3E0 {
+  node "Площадка KE-1" as KE1 {
+    rectangle "Сервис идентификаторов KE" as PII_KE
+    database "PostgreSQL\nидентификаторы кенийцев\nключ шифрования в стране" as DB_KE
+  }
+  node "Площадка KE-2 (в стране)" as KE2 {
+    database "Резервные копии\nи холодная реплика" as BK_KE
+  }
+}
+
+cloud "Партнёры\nM-Pesa · Flutterwave · Paystack\nSendbox · Sendy · SMS/USSD · WhatsApp" as PARTNERS #ECEFF1
+
+CDN --> PODS_A : промахи кеша, HTTPS
+PODS_A --> PG_A : TLS
+PODS_A --> REDIS
+PG_A --> PG_B : синхронная репликация\nRPO ≤ 5 мин, RTO ≤ 30 мин
+PODS_A ..> PODS_B : переключение нагрузки\nпри отказе зоны
+PG_A --> S3 : резервные копии\nи журнал для восстановления на момент времени
+
+PODS_A --> PII_NG : токены, TLS\n(персональные данные не передаются)
+PODS_A --> PII_KE : токены, TLS
+PII_NG --> DB_NG
+PII_KE --> DB_KE
+DB_NG --> BK_NG : репликация и копии\nтолько внутри Нигерии
+DB_KE --> BK_KE : репликация и копии\nтолько внутри Кении
+
+PII_NG --> PARTNERS : вызовы с персональными данными\nв пределах страны
+PII_KE --> PARTNERS : вызовы с персональными данными\nв пределах страны
+PODS_A --> PARTNERS : колбэки и статусы\nбез персональных данных
+
+note right of NG2
+  Переезд за пределы страны запрещён
+  даже в зашифрованном виде:
+  при отказе обеих площадок — региональная
+  деградация, см. failover-plan.md
+end note
+
+note bottom of CPT
+  Восстановление при потере региона:
+  развёртывание из образов и копий
+  в другом регионе, RTO ≤ 4 ч, RPO ≤ 15 мин.
+  Персональные данные при этом остаются
+  в своих странах
+end note
+@enduml

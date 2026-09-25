@@ -70,7 +70,7 @@ UC6 --> Logi
 
 note right of UC12
   Выплата — после подтверждённой выдачи (T+1),
-  а не в день заказа (C-08, R6)
+  а не в день заказа (R6 в Architecture Canvas)
 end note
 note right of UC8
   Требование маркетингового брифа (арт. 2):
