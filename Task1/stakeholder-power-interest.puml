@@ -1,0 +1,59 @@
+@startuml stakeholder-power-interest
+title Карта стейкхолдеров Africa Delivery: влияние / интерес
+
+skinparam defaultFontName "Helvetica"
+skinparam rectangle {
+  BorderColor #555555
+  RoundCorner 8
+}
+skinparam card {
+  BorderColor #333333
+  RoundCorner 6
+}
+
+rectangle "<b>ВЛИЯНИЕ ВЫСОКОЕ</b>" as TOP #FFFFFF {
+  rectangle "<b>интерес низкий</b>\nKeep satisfied — выполнять требования, не втягивать в проект" as Q1 #FFF3E0 {
+    card "Регуляторы\n(NDPC, ODPC/CAK, Information Regulator)\nвнешнее вето, арт. 1, 3" as REG #FFCC80
+    card "Внешний юрист\nопределяет топологию данных, арт. 3" as LAW #FFE0B2
+  }
+  rectangle "<b>интерес высокий</b>\nManage closely — принимают решения" as Q2 #FFEBEE {
+    card "<b>Инвестор</b>\nфинальное слово, арт. 1, 7" as INV #EF9A9A
+    card "CFO\nвето по деньгам, арт. 6" as CFO #FFCDD2
+    card "CTO\nтехника, арт. 5" as CTO #FFCDD2
+    card "CEO\nскоуп и запуск, арт. 1" as CEO #FFCDD2
+  }
+}
+
+rectangle "<b>ВЛИЯНИЕ НИЗКОЕ</b>" as BOTTOM #FFFFFF {
+  rectangle "<b>интерес низкий</b>\nMonitor — контракт и SLA" as Q3 #F5F5F5 {
+    card "Платёжные партнёры\nзаменяемы, кроме M-Pesa" as PAY #E0E0E0
+    card "Логистические партнёры\nвыполняют «день в день», арт. 2" as LOG #E0E0E0
+  }
+  rectangle "<b>интерес высокий</b>\nKeep informed — нет канала влияния" as Q4 #E8F5E9 {
+    card "Маркетинг\nвлияние исчерпано: креативы оплачены, арт. 2" as MKT #C8E6C9
+    card "Продавцы\nинтервью запрещены, арт. 1" as SEL #C8E6C9
+    card "Покупатели\n«голосуют» установкой приложения, арт. 2" as BUY #C8E6C9
+  }
+}
+
+' раскладка карточек внутри квадрантов
+REG -[hidden]down- LAW
+INV -[hidden]right- CFO
+CTO -[hidden]right- CEO
+INV -[hidden]down- CTO
+PAY -[hidden]down- LOG
+MKT -[hidden]down- SEL
+SEL -[hidden]down- BUY
+
+' порядок квадрантов: слева интерес низкий, справа высокий; сверху влияние высокое
+' (связи между контейнерами Graphviz игнорирует, поэтому — между карточками)
+REG -[hidden]right- INV
+PAY -[hidden]right- MKT
+LAW -[hidden]down- PAY
+CTO -[hidden]down- MKT
+
+legend bottom
+  Вертикаль — влияние на решения (вверху выше), горизонталь — интерес к результату проекта (справа выше).
+  Приоритет при конфликте — см. таблицу.
+endlegend
+@enduml

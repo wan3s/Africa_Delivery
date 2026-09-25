@@ -1,0 +1,77 @@
+@startuml c4-container
+!include <C4/C4_Container>
+
+title C4 Container — Africa Delivery, размещение по регионам (MVP)
+
+Person(buyer, "Покупатель", "Смартфон или USSD")
+Person(seller, "Продавец", "Веб-кабинет или WhatsApp")
+Person(staff, "Поддержка и ПВЗ", "Бэк-офис, подтверждение выдачи")
+
+System_Boundary(ad, "Africa Delivery") {
+
+  Container_Boundary(edge, "Точки присутствия CDN — Лагос, Найроби, Йоханнесбург") {
+    Container(cdn, "CDN", "Кеш", "Каталог и изображения; персональных данных не содержит")
+  }
+
+  Container_Boundary(cpt, "AWS af-south-1 (Кейптаун, ЮАР)") {
+    Container(app, "Приложение", "Go, модульный монолит в Kubernetes", "Каталог, заказы, платежи, продавцы, бэк-офис. Оперирует токенами вместо персональных данных")
+    Container(worker, "Фоновый воркер", "Go", "Повторы, колбэки, выплаты, задачи на уведомления")
+    ContainerDb(pg, "Операционная БД", "Управляемый PostgreSQL, реплика в другой зоне", "Заказы, статусы, платёжные ссылки — псевдонимизированные")
+    ContainerDb(redis, "Кеш", "Redis", "Каталог, сессии, ключи идемпотентности")
+    ContainerDb(s3, "Объектное хранилище", "S3", "Фотографии товаров")
+    Container(otel, "Сбор телеметрии", "OpenTelemetry Collector", "Маскирование персональных данных до отправки")
+  }
+
+  Container_Boundary(ng, "Локальный провайдер, Лагос (Нигерия)") {
+    Container(pii_ng, "Сервис идентификаторов NG", "Go", "Токенизация; вызовы партнёров, которым нужны персональные данные")
+    ContainerDb(pii_ng_db, "Хранилище идентификаторов NG", "PostgreSQL, ключ шифрования в стране", "Телефон, имя, адрес, геоточка, документы KYC, журнал согласий")
+  }
+
+  Container_Boundary(ke, "Локальный провайдер, Найроби (Кения)") {
+    Container(pii_ke, "Сервис идентификаторов KE", "Go", "То же для субъектов Кении")
+    ContainerDb(pii_ke_db, "Хранилище идентификаторов KE", "PostgreSQL, ключ шифрования в стране", "То же")
+  }
+}
+
+System_Ext(mpesa, "M-Pesa API", "Кения")
+System_Ext(flw, "Flutterwave / Paystack", "Нигерия")
+System_Ext(logi, "Sendbox / Sendy", "Доставка и пункты выдачи")
+System_Ext(sms, "SMS / USSD шлюз", "")
+System_Ext(wa, "WhatsApp Business API", "")
+
+Rel(buyer, cdn, "Загружает каталог и изображения", "HTTPS")
+Rel(buyer, app, "Оформляет и оплачивает заказ", "HTTPS")
+Rel(seller, app, "Заводит товары, смотрит заказы", "HTTPS")
+Rel(staff, app, "Проверяет продавцов, подтверждает выдачу", "HTTPS")
+
+Rel(cdn, app, "Промахи кеша", "HTTPS")
+Rel(app, pg, "Читает и пишет заказы", "TLS")
+Rel(app, redis, "Кеширует каталог", "TLS")
+Rel(app, s3, "Изображения товаров", "TLS")
+Rel(app, worker, "Ставит задачи через outbox", "в БД")
+Rel(worker, pg, "Читает задачи", "TLS")
+Rel(app, otel, "Метрики, логи, трассы", "OTLP")
+Rel(worker, otel, "Метрики, логи, трассы", "OTLP")
+
+Rel(app, pii_ng, "Сохраняет данные и получает токен", "TLS, только токены наружу")
+Rel(app, pii_ke, "Сохраняет данные и получает токен", "TLS, только токены наружу")
+Rel(worker, pii_ng, "Просит выполнить действие по токену", "TLS")
+Rel(worker, pii_ke, "Просит выполнить действие по токену", "TLS")
+
+Rel(pii_ng, pii_ng_db, "Читает и пишет", "TLS")
+Rel(pii_ke, pii_ke_db, "Читает и пишет", "TLS")
+
+Rel(pii_ng, flw, "Инициирует платёж по номеру телефона", "HTTPS, в пределах страны")
+Rel(pii_ng, logi, "Передаёт заказ с адресом и телефоном", "HTTPS, в пределах страны")
+Rel(pii_ng, sms, "Отправляет SMS и обрабатывает USSD", "HTTPS")
+Rel(pii_ng, wa, "Отправляет сообщения", "HTTPS")
+Rel(pii_ke, mpesa, "Инициирует списание по номеру телефона", "HTTPS, в пределах страны")
+Rel(pii_ke, logi, "Передаёт заказ с адресом и телефоном", "HTTPS, в пределах страны")
+Rel(pii_ke, sms, "Отправляет SMS и обрабатывает USSD", "HTTPS")
+
+Rel(mpesa, app, "Колбэк о подтверждении оплаты — только идентификатор операции", "HTTPS")
+Rel(flw, app, "Колбэк о подтверждении оплаты — только идентификатор операции", "HTTPS")
+Rel(logi, app, "Статусы доставки по номеру отправления", "HTTPS")
+
+SHOW_LEGEND()
+@enduml

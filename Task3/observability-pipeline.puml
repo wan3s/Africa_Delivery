@@ -1,0 +1,58 @@
+@startuml observability-pipeline
+title Сбор телеметрии Africa Delivery
+
+skinparam defaultFontName "Helvetica"
+skinparam rectangle {
+  BorderColor #555555
+  RoundCorner 8
+}
+skinparam database {
+  BorderColor #555555
+}
+
+rectangle "Источники" as SRC #F5F5F5 {
+  rectangle "Мобильное приложение / PWA\nRUM: время до первого товара" as APP #E3F2FD
+  rectangle "CDN и ingress\nлоги запросов, коды ответов" as EDGE #E3F2FD
+  rectangle "Приложение (web)\nOpenTelemetry SDK" as WEB #E3F2FD
+  rectangle "Фоновый воркер\nOpenTelemetry SDK" as WRK #E3F2FD
+  rectangle "Управляемый PostgreSQL,\nRedis, Kubernetes" as INFRA #E3F2FD
+}
+
+rectangle "OpenTelemetry Collector\n(в кластере)\n— обогащение тегами\n— маскирование персональных данных\n— семплирование трасс\n— контроль кардинальности" as COL #FFF3E0
+
+rectangle "Хранение (управляемый сервис)" as BACK #F5F5F5 {
+  database "Метрики\n13 мес" as MET #C8E6C9
+  database "Логи\n30 дней" as LOG #C8E6C9
+  database "Трассы\n7 дней" as TRC #C8E6C9
+}
+
+rectangle "Grafana" as GRAF #FFECB3 {
+  rectangle "Дашборд SLO\nбюджет ошибок, burn rate" as D1
+  rectangle "Сервисные дашборды\n4 золотых сигнала" as D2
+  rectangle "Бизнес-дашборд CEO\nрегистрации, заказы, выручка" as D3
+}
+
+rectangle "Алерты по burn rate\n→ дежурный инженер" as ALERT #FFCDD2
+
+APP --> COL : OTLP
+EDGE --> COL : логи
+WEB --> COL : OTLP (метрики, логи, трассы)
+WRK --> COL : OTLP, контекст трассы из outbox
+INFRA --> COL : метрики платформы
+
+COL --> MET
+COL --> LOG
+COL --> TRC
+
+MET --> D1
+MET --> D2
+MET --> D3
+LOG --> D2
+TRC --> D2
+D1 --> ALERT
+
+note bottom of COL
+  Персональные данные в телеметрию не попадают:
+  телефоны и адреса маскируются на коллекторе (NDPR, POPIA)
+end note
+@enduml
